@@ -15,7 +15,7 @@ output "acr_name" {
 }
 
 output "app_service_plan_name" {
-  value = azurerm_service_plan.asp.name
+  value = azurerm_app_service_plan.asp.name
 }
 
 output "app_service_name" {
