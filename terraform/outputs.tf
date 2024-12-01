@@ -7,7 +7,7 @@ output "app_service_url" {
 }
 
 output "resource_group_name" {
-  value = azurerm_resource_group.main.name
+  value = var.resource_group_name
 }
 
 output "acr_name" {
