@@ -1,20 +1,32 @@
 package test
 
 import (
-	"os"
+	"flag"
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	"github.com/stretchr/testify/assert"
 )
 
+var resourceGroupName string
+var acrName string
+var location string
+
+func init() {
+	flag.StringVar(&resourceGroupName, "resource_group_name", "", "Name of the resource group")
+	flag.StringVar(&acrName, "acr_name", "", "Name of the Azure Container Registry")
+	flag.StringVar(&location, "location", "", "Location of the resources")
+}
+
 func TestTerraformInfrastructure(t *testing.T) {
-	resourceGroupName := os.Getenv("resource_group_name")
-	acrName := os.Getenv("acr_name")
-	location := os.Getenv("location")
+	flag.Parse()
+
+	if resourceGroupName == "" || acrName == "" || location == "" {
+		t.Fatalf("Missing required arguments: resource_group_name=%s, acr_name=%s, location=%s", resourceGroupName, acrName, location)
+	}
 
 	terraformOptions := &terraform.Options{
-		TerraformDir: "../terraform",
+		TerraformDir: "../terraform",orm
 		Vars: map[string]interface{}{
 			"resource_group_name": resourceGroupName,
 			"acr_name":            acrName,
@@ -26,6 +38,6 @@ func TestTerraformInfrastructure(t *testing.T) {
 
 	terraform.InitAndApply(t, terraformOptions)
 
-	outputACRName := terraform.Output(t, terraformOptions, "acr_name")
-	assert.Equal(t, acrName, outputACRName)
+	outputAcrName := terraform.Output(t, terraformOptions, "acr_name")
+	assert.Equal(t, acrName, outputAcrName)
 }
