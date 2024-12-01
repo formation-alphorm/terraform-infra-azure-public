@@ -1,7 +1,8 @@
 package test
 
 import (
-	"flag"
+	"os"
+	"strings"
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/terraform"
@@ -12,21 +13,31 @@ var resourceGroupName string
 var acrName string
 var location string
 
-func init() {
-	flag.StringVar(&resourceGroupName, "resource_group_name", "", "Name of the resource group")
-	flag.StringVar(&acrName, "acr_name", "", "Name of the Azure Container Registry")
-	flag.StringVar(&location, "location", "", "Location of the resources")
+func parseArgs() {
+	for _, arg := range os.Args {
+		if strings.HasPrefix(arg, "resource_group_name=") {
+			resourceGroupName = strings.TrimPrefix(arg, "resource_group_name=")
+		} else if strings.HasPrefix(arg, "acr_name=") {
+			acrName = strings.TrimPrefix(arg, "acr_name=")
+		} else if strings.HasPrefix(arg, "location=") {
+			location = strings.TrimPrefix(arg, "location=")
+		}
+	}
 }
 
 func TestTerraformInfrastructure(t *testing.T) {
-	flag.Parse()
+	// Parse explicitement les arguments
+	parseArgs()
 
+	t.Logf("Parsed Arguments: resource_group_name=%s, acr_name=%s, location=%s", resourceGroupName, acrName, location)
+
+	// Vérifiez que les arguments sont bien passés
 	if resourceGroupName == "" || acrName == "" || location == "" {
 		t.Fatalf("Missing required arguments: resource_group_name=%s, acr_name=%s, location=%s", resourceGroupName, acrName, location)
 	}
 
 	terraformOptions := &terraform.Options{
-		TerraformDir: "../terraform",orm
+		TerraformDir: "../terraform",
 		Vars: map[string]interface{}{
 			"resource_group_name": resourceGroupName,
 			"acr_name":            acrName,
@@ -37,6 +48,9 @@ func TestTerraformInfrastructure(t *testing.T) {
 	defer terraform.Destroy(t, terraformOptions)
 
 	terraform.InitAndApply(t, terraformOptions)
+
+	outputResourceGroup := terraform.Output(t, terraformOptions, "resource_group_name")
+	assert.Equal(t, resourceGroupName, outputResourceGroup)
 
 	outputAcrName := terraform.Output(t, terraformOptions, "acr_name")
 	assert.Equal(t, acrName, outputAcrName)
