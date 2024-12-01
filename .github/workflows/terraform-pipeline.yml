@@ -78,7 +78,7 @@ jobs:
             - name: Install Dependencies
               if: github.event_name == 'push'
               run: |
-                cd tests
+                cd ../tests
                 go mod tidy
 
             - name: Run Terratest
