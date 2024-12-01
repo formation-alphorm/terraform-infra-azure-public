@@ -89,4 +89,6 @@ jobs:
                   -args \
                   "resource_group_name=${{ vars.TF_RESOURCE_GROUP_NAME }}" \
                   "acr_name=${{ vars.TF_ACR_NAME }}" \
-                  "location=${{ vars.TF_LOCATION }}"
+                  "location=${{ vars.TF_LOCATION }}" \
+                  "app_service_plan_name=${{ vars.TF_APP_SERVICE_PLAN_NAME }}" \
+                  "app_service_name=${{ vars.TF_APP_SERVICE_NAME }}"
