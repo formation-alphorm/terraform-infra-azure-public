@@ -8,21 +8,37 @@ import (
 )
 
 func TestTerraformInfrastructureVerification(t *testing.T) {
-	// Configuration pour lire l'état existant
+	// Configuration pour lire l'état Terraform existant
 	terraformOptions := &terraform.Options{
-		TerraformDir: "../terraform", // Chemin du répertoire Terraform utilisé par le pipeline
+		TerraformDir: "../terraform", // Chemin vers le répertoire Terraform
 	}
 
-	// Lire les sorties Terraform sans appliquer
-	outputResourceGroup := terraform.Output(t, terraformOptions, "resource_group_name")
-	assert.Equal(t, "terraform-iac-test-rg", outputResourceGroup, "Resource group name mismatch")
+	// Récupérer les outputs
+	outputResourceGroup, err := terraform.OutputE(t, terraformOptions, "resource_group_name")
+	if err != nil {
+		t.Fatalf("Failed to get output 'resource_group_name': %v", err)
+	}
+	t.Logf("Resource Group Name: %s", outputResourceGroup)
+	assert.Equal(t, "terraform-iac-test-rg", outputResourceGroup)
 
-	outputAcrName := terraform.Output(t, terraformOptions, "acr_name")
-	assert.Equal(t, "iacterraformprojecttestacr", outputAcrName, "ACR name mismatch")
+	outputAcrName, err := terraform.OutputE(t, terraformOptions, "acr_name")
+	if err != nil {
+		t.Fatalf("Failed to get output 'acr_name': %v", err)
+	}
+	t.Logf("ACR Name: %s", outputAcrName)
+	assert.Equal(t, "iacterraformprojecttestacr", outputAcrName)
 
-	outputAppServicePlanName := terraform.Output(t, terraformOptions, "app_service_plan_name")
-	assert.Equal(t, "iac-test-app-service-plan", outputAppServicePlanName, "App Service Plan name mismatch")
+	outputAppServicePlanName, err := terraform.OutputE(t, terraformOptions, "app_service_plan_name")
+	if err != nil {
+		t.Fatalf("Failed to get output 'app_service_plan_name': %v", err)
+	}
+	t.Logf("App Service Plan Name: %s", outputAppServicePlanName)
+	assert.Equal(t, "iac-test-app-service-plan", outputAppServicePlanName)
 
-	outputAppServiceName := terraform.Output(t, terraformOptions, "app_service_name")
-	assert.Equal(t, "iacprojecttestapp", outputAppServiceName, "App Service name mismatch")
+	outputAppServiceName, err := terraform.OutputE(t, terraformOptions, "app_service_name")
+	if err != nil {
+		t.Fatalf("Failed to get output 'app_service_name': %v", err)
+	}
+	t.Logf("App Service Name: %s", outputAppServiceName)
+	assert.Equal(t, "iacprojecttestapp", outputAppServiceName)
 }
