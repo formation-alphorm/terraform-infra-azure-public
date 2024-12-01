@@ -84,7 +84,8 @@ jobs:
             - name: Run Terratest
               if: github.event_name == 'push'  
               run: |
-                go test -v ../tests/ \
+                cd ../tests
+                go test \
                   -args \
                   resource_group_name=${{ vars.TF_RESOURCE_GROUP_NAME }} \
                   acr_name=${{ vars.TF_ACR_NAME }} \
