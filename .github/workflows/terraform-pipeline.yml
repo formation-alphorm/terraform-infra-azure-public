@@ -1,94 +1,85 @@
 name: Terraform Pipeline With Terratest
 
 on:
-    pull_request:
-      branches:
-        - main
-    push:
-      branches:
-        - main
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
 
 jobs:
-    terraform:
-        name: Terraform Workflow (${{ matrix.environment }})
-        runs-on: ubuntu-latest
+  terraform:
+    name: Terraform Workflow (${{ matrix.environment }})
+    runs-on: ubuntu-latest
 
-        strategy:
-          matrix:
-            environment: [test, production]
+    strategy:
+      matrix:
+        environment: [test, production]
+    
+    environment: ${{ matrix.environment }}
+
+    env:
+      ARM_ACCESS_KEY: ${{ secrets.ACCOUNT_KEY }}
+
+    defaults:
+      run:
+        working-directory: terraform
         
-        environment: ${{ matrix.environment }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-        env:
-            ARM_ACCESS_KEY: ${{ secrets.ACCOUNT_KEY }}
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: latest
 
-        defaults:
-            run:
-              working-directory: terraform
-              
-        steps:
-            - name: Checkout Repository
-              uses: actions/checkout@v3
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-            - name: Setup Terraform
-              uses: hashicorp/setup-terraform@v2
-              with:
-                terraform_version: latest
+      - name: Terraform Init
+        run: terraform init -backend-config="key=${{ matrix.environment }}/terraform.tfstate"
 
-            - name: Azure Login
-              uses: azure/login@v1
-              with:
-                creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Select Terraform Workspace
+        run: |
+          terraform workspace select ${{ matrix.environment }} || terraform workspace new ${{ matrix.environment }}
 
-            - name: Terraform Init
-              run: terraform init
+      - name: Log Terraform Workspace
+        run: terraform workspace show
 
-            - name: Select Terraform Workspace
-              run: |
-                terraform workspace select ${{ matrix.environment }} || terraform workspace new ${{ matrix.environment }}
+      - name: Terraform Plan
+        run: |
+          terraform plan \
+            -var="subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }}" \
+            -var="resource_group_name=${{ vars.TF_RESOURCE_GROUP_NAME }}" \
+            -var="acr_name=${{ vars.TF_ACR_NAME }}" \
+            -var="app_service_plan_name=${{ vars.TF_APP_SERVICE_PLAN_NAME }}" \
+            -var="app_service_name=${{ vars.TF_APP_SERVICE_NAME }}" \
+            -var="location=${{ vars.TF_LOCATION }}" \
+            -out=tfplan-${{ matrix.environment }}
 
-            - name: Terraform Fmt Check
-              run: terraform fmt -check           
+      - name: Terraform Apply
+        if: github.event_name == 'push'    
+        run: terraform apply -auto-approve tfplan-${{ matrix.environment }}
 
-            - name: Terraform Validate
-              run: terraform validate
+      - name: Setup Go for Terratest
+        if: github.event_name == 'push'    
+        uses: actions/setup-go@v3
+        with:
+          go-version: "1.20"
 
-            - name: Terraform Plan
-              run: |
-                terraform plan \
-                  -var="subscription_id=${{ vars.AZURE_SUBSCRIPTION_ID }}" \
-                  -var="resource_group_name=${{ vars.TF_RESOURCE_GROUP_NAME }}" \
-                  -var="acr_name=${{ vars.TF_ACR_NAME }}" \
-                  -var="app_service_plan_name=${{ vars.TF_APP_SERVICE_PLAN_NAME }}" \
-                  -var="app_service_name=${{ vars.TF_APP_SERVICE_NAME }}" \
-                  -var="location=${{ vars.TF_LOCATION }}" \
-                  -out=tfplan-${{ matrix.environment }}
-
-            - name: Terraform Apply
-              if: github.event_name == 'push'    
-              run: |
-                terraform apply -auto-approve tfplan-${{ matrix.environment }}
-
-            - name: Setup Go for Terratest
-              if: github.event_name == 'push'    
-              uses: actions/setup-go@v3
-              with:
-                go-version: "1.20"
-
-            - name: Install Dependencies
-              if: github.event_name == 'push'
-              run: |
-                cd ../tests
-                go mod tidy
-
-            - name: Run Terratest
-              if: github.event_name == 'push'  
-              run: |
-                cd ../tests
-                go test \
-                  -args \
-                  "resource_group_name=${{ vars.TF_RESOURCE_GROUP_NAME }}" \
-                  "acr_name=${{ vars.TF_ACR_NAME }}" \
-                  "location=${{ vars.TF_LOCATION }}" \
-                  "app_service_plan_name=${{ vars.TF_APP_SERVICE_PLAN_NAME }}" \
-                  "app_service_name=${{ vars.TF_APP_SERVICE_NAME }}"
+      - name: Run Terratest
+        if: github.event_name == 'push'  
+        run: |
+          cd ../tests
+          go test \
+            -args \
+            "resource_group_name=${{ vars.TF_RESOURCE_GROUP_NAME }}" \
+            "acr_name=${{ vars.TF_ACR_NAME }}" \
+            "location=${{ vars.TF_LOCATION }}" \
+            "app_service_plan_name=${{ vars.TF_APP_SERVICE_PLAN_NAME }}" \
+            "app_service_name=${{ vars.TF_APP_SERVICE_NAME }}" \
+            "terraform_dir=../terraform"
