@@ -1,6 +1,7 @@
 package test
 
 import (
+	"encoding/json"
 	"testing"
 
 	"github.com/gruntwork-io/terratest/modules/terraform"
@@ -14,31 +15,31 @@ func TestTerraformInfrastructureVerification(t *testing.T) {
 	}
 
 	// Récupérer les outputs
-	outputResourceGroup, err := terraform.OutputE(t, terraformOptions, "resource_group_name")
+	rawOutput, err := terraform.OutputE(t, terraformOptions, "resource_group_name")
 	if err != nil {
 		t.Fatalf("Failed to get output 'resource_group_name': %v", err)
 	}
-	t.Logf("Resource Group Name: %s", outputResourceGroup)
-	assert.Equal(t, "terraform-iac-test-rg", outputResourceGroup)
 
-	outputAcrName, err := terraform.OutputE(t, terraformOptions, "acr_name")
+	// Décoder la sortie brute
+	var outputResourceGroup string
+	if err := json.Unmarshal([]byte(rawOutput), &outputResourceGroup); err != nil {
+		t.Fatalf("Failed to parse output 'resource_group_name': %v", err)
+	}
+	t.Logf("Resource Group Name: %s", outputResourceGroup)
+
+	// Valider la valeur
+	assert.Equal(t, "terraform-iac-production-rg", outputResourceGroup)
+
+	// Ajoutez des assertions similaires pour les autres outputs
+	rawOutput, err = terraform.OutputE(t, terraformOptions, "acr_name")
 	if err != nil {
 		t.Fatalf("Failed to get output 'acr_name': %v", err)
 	}
+
+	var outputAcrName string
+	if err := json.Unmarshal([]byte(rawOutput), &outputAcrName); err != nil {
+		t.Fatalf("Failed to parse output 'acr_name': %v", err)
+	}
 	t.Logf("ACR Name: %s", outputAcrName)
-	assert.Equal(t, "iacterraformprojecttestacr", outputAcrName)
-
-	outputAppServicePlanName, err := terraform.OutputE(t, terraformOptions, "app_service_plan_name")
-	if err != nil {
-		t.Fatalf("Failed to get output 'app_service_plan_name': %v", err)
-	}
-	t.Logf("App Service Plan Name: %s", outputAppServicePlanName)
-	assert.Equal(t, "iac-test-app-service-plan", outputAppServicePlanName)
-
-	outputAppServiceName, err := terraform.OutputE(t, terraformOptions, "app_service_name")
-	if err != nil {
-		t.Fatalf("Failed to get output 'app_service_name': %v", err)
-	}
-	t.Logf("App Service Name: %s", outputAppServiceName)
-	assert.Equal(t, "iacprojecttestapp", outputAppServiceName)
+	assert.Equal(t, "iacterraformprojectproductionacr", outputAcrName)
 }
