@@ -1,4 +1,4 @@
-name: Terraform Pipeline
+name: Terraform Pipeline With Terratest
 
 on:
     pull_request:
@@ -68,5 +68,18 @@ jobs:
               if: github.event_name == 'push'    
               run: |
                 terraform apply -auto-approve tfplan-${{ matrix.environment }}
-        
 
+            - name: Setup Go for Terratest
+              if: github.event_name == 'push'    
+              uses: actions/setup-go@v3
+              with:
+                go-version: 1.20
+      
+            - name: Run Terratest
+              if: github.event_name == 'push'  
+              run: |
+                go test -v ../tests/ \
+                  -args \
+                  resource_group_name=${{ vars.TF_RESOURCE_GROUP_NAME }} \
+                  acr_name=${{ vars.TF_ACR_NAME }} \
+                  location=${{ vars.TF_LOCATION }}
