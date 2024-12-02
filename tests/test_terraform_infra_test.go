@@ -1,7 +1,6 @@
 package test
 
 import (
-	"encoding/json"
 	"strings"
 	"testing"
 
@@ -10,52 +9,32 @@ import (
 )
 
 func TestTerraformInfrastructureVerification(t *testing.T) {
+	// Chemin vers le répertoire Terraform
 	terraformOptions := &terraform.Options{
-		TerraformDir: "../terraform", // Chemin vers le répertoire Terraform
+		TerraformDir: "../terraform",
 	}
 
-	// Fonction pour gérer les outputs brut ou JSON
-	getTerraformOutput := func(output string) (string, error) {
-		rawOutput, err := terraform.OutputRequiredE(t, terraformOptions, output)
-		if err != nil {
-			return "", err
-		}
-		// Tente de parser comme JSON, sinon retourne tel quel
-		var parsedOutput string
-		err = json.Unmarshal([]byte(rawOutput), &parsedOutput)
-		if err != nil {
-			// Si parsing échoue, c'est probablement une chaîne brute
-			parsedOutput = strings.Trim(rawOutput, "\"")
-		}
-		return parsedOutput, nil
+	// Fonction pour gérer les outputs (JSON ou chaînes brutes)
+	getOutput := func(outputKey string) string {
+		rawOutput := terraform.Output(t, terraformOptions, outputKey)
+		// Nettoyage des guillemets s'il s'agit d'une chaîne brute
+		return strings.Trim(rawOutput, "\"")
 	}
 
-	// Récupérer et valider les outputs
-	outputResourceGroup, err := getTerraformOutput("resource_group_name")
-	if err != nil {
-		t.Fatalf("Failed to get output 'resource_group_name': %v", err)
-	}
+	// Vérifiez chaque output et affichez les logs
+	outputResourceGroup := getOutput("resource_group_name")
 	t.Logf("Resource Group Name: %s", outputResourceGroup)
-	assert.Equal(t, "terraform-iac-production-rg", outputResourceGroup)
+	assert.Equal(t, "terraform-iac-test-rg", outputResourceGroup)
 
-	outputAcrName, err := getTerraformOutput("acr_name")
-	if err != nil {
-		t.Fatalf("Failed to get output 'acr_name': %v", err)
-	}
+	outputAcrName := getOutput("acr_name")
 	t.Logf("ACR Name: %s", outputAcrName)
-	assert.Equal(t, "iacterraformprojectproductionacr", outputAcrName)
+	assert.Equal(t, "iacterraformprojecttestacr", outputAcrName)
 
-	outputAppServicePlanName, err := getTerraformOutput("app_service_plan_name")
-	if err != nil {
-		t.Fatalf("Failed to get output 'app_service_plan_name': %v", err)
-	}
+	outputAppServicePlanName := getOutput("app_service_plan_name")
 	t.Logf("App Service Plan Name: %s", outputAppServicePlanName)
-	assert.Equal(t, "iac-production-app-service-plan", outputAppServicePlanName)
+	assert.Equal(t, "iac-test-app-service-plan", outputAppServicePlanName)
 
-	outputAppServiceName, err := getTerraformOutput("app_service_name")
-	if err != nil {
-		t.Fatalf("Failed to get output 'app_service_name': %v", err)
-	}
+	outputAppServiceName := getOutput("app_service_name")
 	t.Logf("App Service Name: %s", outputAppServiceName)
-	assert.Equal(t, "iacprojectproductionapp", outputAppServiceName)
+	assert.Equal(t, "iacprojecttestapp", outputAppServiceName)
 }

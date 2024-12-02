@@ -65,6 +65,10 @@ jobs:
         if: github.event_name == 'push'    
         run: terraform apply -auto-approve tfplan-${{ matrix.environment }}
 
+      - name: Log Terraform Outputs
+        if: github.event_name == 'push'    
+        run: terraform output -json
+
       - name: Setup Go for Terratest
         if: github.event_name == 'push'    
         uses: actions/setup-go@v3
